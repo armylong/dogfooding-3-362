@@ -71,7 +71,8 @@ export class Game {
             board: previousBoard,
             captures: previousCaptures,
             player: this.currentPlayer,
-            koPoint: this.koPoint
+            koPoint: this.koPoint,
+            lastMove: this.lastMove
         });
 
         if (captured.length === 1) {
@@ -108,7 +109,8 @@ export class Game {
             board: this.board.copy(),
             captures: { ...this.captures },
             player: this.currentPlayer,
-            koPoint: this.koPoint
+            koPoint: this.koPoint,
+            lastMove: this.lastMove
         });
 
         this.consecutivePasses++;
@@ -139,7 +141,7 @@ export class Game {
 
         if (this.history.length > 0) {
             const prev = this.history[this.history.length - 1];
-            this.board = prev.board;
+            this.lastMove = prev.lastMove || null;
         } else {
             this.lastMove = null;
         }
