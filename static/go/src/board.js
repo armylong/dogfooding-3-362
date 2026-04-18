@@ -42,11 +42,15 @@ export class Board {
 
     getNeighbors(row, col) {
         const neighbors = [];
+        // 上下左右四个方向（围棋中没有斜线）
         const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
         
         for (const [dr, dc] of directions) {
             const r = row + dr;
             const c = col + dc;
+            // 只返回棋盘范围内的邻居
+            // 注意：对于角落的棋子，只会返回2个邻居
+            // 对于边缘的棋子，只会返回3个邻居
             if (r >= 0 && r < this.size && c >= 0 && c < this.size) {
                 neighbors.push({ row: r, col: c });
             }
@@ -87,15 +91,21 @@ export class Board {
         const group = this.getGroup(row, col);
         const liberties = new Set();
 
+        // 遍历整个棋块的所有棋子
         for (const stone of group) {
+            // 获取每个棋子的所有相邻位置
             const neighbors = this.getNeighbors(stone.row, stone.col);
             for (const n of neighbors) {
+                // 如果相邻位置是空的，则算作一口气
+                // 使用Set去重，避免多个棋子共享同一口气被重复计算
                 if (this.get(n.row, n.col) === null) {
                     liberties.add(`${n.row},${n.col}`);
                 }
             }
         }
 
+        // 对于角落棋子(如0,0)，邻居只有2个
+        // 如果这2个位置都被对方棋子占据，气数就是0，应该被提掉
         return liberties.size;
     }
 

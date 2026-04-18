@@ -4,6 +4,11 @@ export class Renderer {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        this.scale = 1;
+    }
+
+    setScale(scale) {
+        this.scale = scale;
     }
 
     clear() {
@@ -12,61 +17,88 @@ export class Renderer {
     }
 
     drawBoard() {
-        const padding = CELL_SIZE;
-        const boardWidth = (BOARD_SIZE - 1) * CELL_SIZE;
+        // 所有坐标都乘以缩放比例
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const padding = scaledCellSize;
+        const boardWidth = (BOARD_SIZE - 1) * scaledCellSize;
 
         this.ctx.fillStyle = COLORS.BOARD;
-        this.ctx.fillRect(padding - CELL_SIZE / 2, padding - CELL_SIZE / 2, boardWidth + CELL_SIZE, boardWidth + CELL_SIZE);
+        this.ctx.fillRect(
+            padding - scaledCellSize / 2,
+            padding - scaledCellSize / 2,
+            boardWidth + scaledCellSize,
+            boardWidth + scaledCellSize
+        );
 
         this.ctx.strokeStyle = COLORS.LINE;
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = Math.max(1, this.scale);
 
         for (let i = 0; i < BOARD_SIZE; i++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(padding, padding + i * CELL_SIZE);
-            this.ctx.lineTo(padding + boardWidth, padding + i * CELL_SIZE);
+            this.ctx.moveTo(padding, padding + i * scaledCellSize);
+            this.ctx.lineTo(padding + boardWidth, padding + i * scaledCellSize);
             this.ctx.stroke();
 
             this.ctx.beginPath();
-            this.ctx.moveTo(padding + i * CELL_SIZE, padding);
-            this.ctx.lineTo(padding + i * CELL_SIZE, padding + boardWidth);
+            this.ctx.moveTo(padding + i * scaledCellSize, padding);
+            this.ctx.lineTo(padding + i * scaledCellSize, padding + boardWidth);
             this.ctx.stroke();
         }
 
         this.ctx.fillStyle = COLORS.STAR_POINT;
+        const starPointRadius = Math.max(3, 4 * this.scale);
         for (const [row, col] of STAR_POINTS) {
             this.ctx.beginPath();
-            this.ctx.arc(padding + col * CELL_SIZE, padding + row * CELL_SIZE, 4, 0, Math.PI * 2);
+            this.ctx.arc(
+                padding + col * scaledCellSize,
+                padding + row * scaledCellSize,
+                starPointRadius,
+                0,
+                Math.PI * 2
+            );
             this.ctx.fill();
         }
     }
 
     drawStones(board) {
-        const padding = CELL_SIZE;
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const padding = scaledCellSize;
 
         for (let row = 0; row < BOARD_SIZE; row++) {
             for (let col = 0; col < BOARD_SIZE; col++) {
                 const stone = board.get(row, col);
                 if (stone) {
-                    this._drawStone(padding + col * CELL_SIZE, padding + row * CELL_SIZE, stone);
+                    this._drawStone(
+                        padding + col * scaledCellSize,
+                        padding + row * scaledCellSize,
+                        stone
+                    );
                 }
             }
         }
     }
 
     _drawStone(x, y, player) {
-        const radius = CELL_SIZE / 2 - 2;
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const radius = scaledCellSize / 2 - 2 * this.scale;
+        const gradientOffset = 5 * this.scale;
 
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
 
         if (player === PLAYERS.BLACK) {
-            const gradient = this.ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
+            const gradient = this.ctx.createRadialGradient(
+                x - gradientOffset, y - gradientOffset, 0,
+                x, y, radius
+            );
             gradient.addColorStop(0, '#666666');
             gradient.addColorStop(1, '#000000');
             this.ctx.fillStyle = gradient;
         } else {
-            const gradient = this.ctx.createRadialGradient(x - 5, y - 5, 0, x, y, radius);
+            const gradient = this.ctx.createRadialGradient(
+                x - gradientOffset, y - gradientOffset, 0,
+                x, y, radius
+            );
             gradient.addColorStop(0, '#ffffff');
             gradient.addColorStop(1, '#cccccc');
             this.ctx.fillStyle = gradient;
@@ -74,34 +106,34 @@ export class Renderer {
 
         this.ctx.fill();
         this.ctx.strokeStyle = player === PLAYERS.BLACK ? '#000000' : '#999999';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = Math.max(1, this.scale);
         this.ctx.stroke();
     }
 
     drawLastMove(row, col) {
-        const padding = CELL_SIZE;
-        const x = padding + col * CELL_SIZE;
-        const y = padding + row * CELL_SIZE;
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const padding = scaledCellSize;
+        const x = padding + col * scaledCellSize;
+        const y = padding + row * scaledCellSize;
 
-        const board = this.canvas;
-        const ctx = this.ctx;
-        const stone = ctx.getImageData(x - 10, y - 10, 20, 20);
+        const sampleSize = Math.max(10, 20 * this.scale);
+        const stone = this.ctx.getImageData(x - sampleSize / 2, y - sampleSize / 2, sampleSize, sampleSize);
         const isBlack = stone.data[0] < 128;
 
         this.ctx.strokeStyle = isBlack ? '#ffffff' : '#000000';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = Math.max(1, 2 * this.scale);
         this.ctx.beginPath();
-        this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+        this.ctx.arc(x, y, Math.max(3, 5 * this.scale), 0, Math.PI * 2);
         this.ctx.stroke();
     }
 
     drawStatus(currentPlayer, state, captures) {
-        const padding = CELL_SIZE;
-        const boardWidth = (BOARD_SIZE - 1) * CELL_SIZE;
-        const statusY = padding + boardWidth + CELL_SIZE / 2 + 20;
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const boardWidth = (BOARD_SIZE - 1) * scaledCellSize;
+        const statusY = scaledCellSize + boardWidth + scaledCellSize / 2 + 20 * this.scale;
 
         this.ctx.fillStyle = COLORS.TEXT;
-        this.ctx.font = 'bold 18px Arial';
+        this.ctx.font = `bold ${Math.max(12, 18 * this.scale)}px Arial`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
 
@@ -112,10 +144,18 @@ export class Renderer {
             this.ctx.fillText(text, this.canvas.width / 2, statusY);
         }
 
-        this.ctx.font = '14px Arial';
-        this.ctx.fillText(`提子 - 黑: ${captures.black} | 白: ${captures.white}`, this.canvas.width / 2, statusY + 22);
+        this.ctx.font = `${Math.max(10, 14 * this.scale)}px Arial`;
+        this.ctx.fillText(
+            `提子 - 黑: ${captures.black} | 白: ${captures.white}`,
+            this.canvas.width / 2,
+            statusY + 22 * this.scale
+        );
 
-        this.ctx.font = '12px Arial';
-        this.ctx.fillText('按 P 弃权 | 按 U 悔棋 | 按 R 重新开始', this.canvas.width / 2, statusY + 44);
+        this.ctx.font = `${Math.max(8, 12 * this.scale)}px Arial`;
+        this.ctx.fillText(
+            '按 P 弃权 | 按 U 悔棋 | 按 R 重新开始',
+            this.canvas.width / 2,
+            statusY + 44 * this.scale
+        );
     }
 }

@@ -22,4 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
             game.undo();
         }
     });
+
+    // 窗口大小变化时重新计算缩放并重绘
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        // 防抖处理，避免频繁调用
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            game.resize();
+            game._render();
+        }, 100);
+    });
 });

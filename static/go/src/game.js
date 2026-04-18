@@ -14,15 +14,42 @@ export class Game {
         this.lastMove = null;
         this.koPoint = null;
         this.consecutivePasses = 0;
+        this.scale = 1;
+        this.baseWidth = (BOARD_SIZE + 1) * CELL_SIZE;
+        this.baseHeight = this.baseWidth + 80;
 
         this._init();
     }
 
     _init() {
-        const size = (BOARD_SIZE + 1) * CELL_SIZE;
-        this.canvas.width = size;
-        this.canvas.height = size + 80;
+        this.resize();
         this._render();
+    }
+
+    resize() {
+        // 获取容器尺寸
+        const container = this.canvas.parentElement;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // 计算合适的缩放比例，留出一些边距
+        const margin = 20;
+        const maxWidth = containerWidth - margin * 2;
+        const maxHeight = containerHeight - margin * 2;
+
+        const scaleX = maxWidth / this.baseWidth;
+        const scaleY = maxHeight / this.baseHeight;
+        
+        // 使用较小的缩放比例，确保棋盘在两个方向上都能完全显示
+        this.scale = Math.min(scaleX, scaleY, 2); // 最大放大到2倍
+        this.scale = Math.max(0.3, this.scale); // 最小缩放到0.3倍
+
+        // 设置canvas实际尺寸
+        this.canvas.width = Math.round(this.baseWidth * this.scale);
+        this.canvas.height = Math.round(this.baseHeight * this.scale);
+
+        // 更新渲染器缩放
+        this.renderer.setScale(this.scale);
     }
 
     handleClick(x, y) {
@@ -30,8 +57,10 @@ export class Game {
             return;
         }
 
-        const col = Math.round((x - CELL_SIZE) / CELL_SIZE);
-        const row = Math.round((y - CELL_SIZE) / CELL_SIZE);
+        // 将点击坐标转换为原始坐标系
+        const scaledCellSize = CELL_SIZE * this.scale;
+        const col = Math.round((x - scaledCellSize) / scaledCellSize);
+        const row = Math.round((y - scaledCellSize) / scaledCellSize);
 
         if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE) {
             return;
@@ -71,7 +100,8 @@ export class Game {
             board: previousBoard,
             captures: previousCaptures,
             player: this.currentPlayer,
-            koPoint: this.koPoint
+            koPoint: this.koPoint,
+            lastMove: this.lastMove
         });
 
         if (captured.length === 1) {
@@ -108,7 +138,8 @@ export class Game {
             board: this.board.copy(),
             captures: { ...this.captures },
             player: this.currentPlayer,
-            koPoint: this.koPoint
+            koPoint: this.koPoint,
+            lastMove: this.lastMove
         });
 
         this.consecutivePasses++;
@@ -129,20 +160,17 @@ export class Game {
             return;
         }
 
+        // 弹出最后一步的历史状态（悔棋一步）
+        // 每一条历史记录代表下这步棋之前的状态
+        // 因此pop后，棋盘和状态就恢复到下这步棋之前的状态
         const lastState = this.history.pop();
         this.board = lastState.board;
         this.captures = lastState.captures;
         this.currentPlayer = lastState.player;
         this.koPoint = lastState.koPoint;
+        this.lastMove = lastState.lastMove;
         this.state = GAME_STATES.PLAYING;
         this.consecutivePasses = 0;
-
-        if (this.history.length > 0) {
-            const prev = this.history[this.history.length - 1];
-            this.board = prev.board;
-        } else {
-            this.lastMove = null;
-        }
 
         this._render();
     }
@@ -156,6 +184,7 @@ export class Game {
         this.lastMove = null;
         this.koPoint = null;
         this.consecutivePasses = 0;
+        this.resize();
         this._render();
     }
 
